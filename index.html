@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Janaklees National Schools</title>
+<link rel="icon" href="logo.jpg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{font-family:Tahoma,Arial,sans-serif;margin:0;background:#f4f6f8;color:#222;line-height:1.5}
+header{background:#1b2f7b;color:#fff;padding:8px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:5px solid #5aa72b}
+header img{height:60px;background:#fff;padding:2px;border-radius:6px}
+header h1{font-size:1.2rem;margin:0}header small{display:block;color:#cfd8f5}
+#hd{margin-inline-start:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+main{max-width:900px;margin:0 auto;padding:16px 12px 60px}
+h2{color:#1b2f7b;margin:0 0 6px}h3{margin:0 0 8px;color:#1b2f7b}
+.card{background:#fff;border:1px solid #bbb;padding:14px;margin-top:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+input,select{font:inherit;padding:6px;border:1px solid #888;background:#fff;color:#222}
+button{font:inherit;padding:6px 12px;border:1px solid #888;background:#eee;color:#222;cursor:pointer}
+button.p{background:#1b2f7b;color:#fff;border-color:#1b2f7b}
+button.link{border:0;background:none;color:#1b2f7b;text-decoration:underline;padding:2px}
+button:disabled{opacity:.6}
+.mute{color:#666}.tag{font-size:.8rem;padding:1px 8px;background:#fde9b8}.tag.ok{background:#d6efc4}
+.exam{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #ddd}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:540px}
+th,td{border:1px solid #ccc;padding:5px 8px;text-align:start}th{background:#e4e9f5}
+td input.g{width:70px}td input.n{width:100%;min-width:160px}
+input.bad{border:2px solid #c00;background:#fff0f0}
+.sticky{position:sticky;bottom:0;background:#fff;border:1px solid #bbb;border-top:3px solid #5aa72b;padding:10px 14px;margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.score{font-size:1.8rem;font-weight:bold;color:#1b2f7b}
+.grade{display:flex;justify-content:space-between;gap:12px}
+.bar{height:8px;background:#ddd;margin-top:8px}.bar i{display:block;height:100%;background:#5aa72b}
+.note{margin-top:8px;padding:6px 10px;border-inline-start:4px solid #5aa72b;background:#f1f6ec}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;max-width:90vw;display:none;z-index:9}
+</style>
+</head>
+<body>
+<header>
+  <img src="logo.jpg" alt="">
+  <div><h1 id="sn"></h1><small id="ss"></small></div>
+  <div id="hd"><span id="who"></span><button id="lb" onclick="setLang()"></button></div>
+</header>
+<main id="app"></main>
+<div id="toast" role="status"></div>
+<script>
+/* ===== Paste your two values from Supabase: Project Settings > API ===== */
+const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+/* ======================================================================= */
+
+const T = {
+en: {
+  school: "Janaklees National Schools", sub: "Monthly exam grades", lang: "العربية", loading: "Loading…",
+  signIn: "Sign in", signInHint: "Use the email and password your school gave you.", email: "Email", password: "Password", signOut: "Sign out",
+  signInFail: "Sign in failed. Check your email and password.", noProfile: "Could not load your account. Ask the school office.",
+  noSubject: "Your account has no subject yet. Ask the school office.", admin: "Admin accounts are managed in the Supabase dashboard.",
+  exams: s => s + " exams", newExam: "Create a new exam", examName: "Exam name", examPh: "e.g. October exam", max: "Maximum score",
+  create: "Create exam", yours: "Your exams", none: "No exams yet. Create your first one above.", draft: "Draft", done: "Submitted",
+  outOf: m => "Out of " + m, gradedOf: (g, n) => g + " graded of " + n + " students", view: "View or edit", cont: "Continue grading",
+  needName: "Enter an exam name first.", needMax: "Maximum score must be greater than 0.", back: "Back to all exams",
+  auto: "changes save automatically", saving: "saving…", saved: "all changes saved", addStu: "Add students",
+  addAll: n => "Add all students (" + n + ")", addCls: (c, n) => "Add class " + c + " (" + n + ")", addOne: "Add student", pick: "Pick one student",
+  stuIn: n => "Students in this exam (" + n + ")", student: "Student", cls: "Class", grade: m => "Grade (out of " + m + ")", note: "Note for the student",
+  opt: "Optional", remove: "Remove", noStu: "No students yet. Use the buttons above to add the class.",
+  sum: (g, b) => g + " graded, " + b + " blank", inv: i => i + " invalid", fix: m => "Fix the grades marked in red. They must be between 0 and " + m + ".",
+  needOne: "Add at least one student first.", needGrade: "Enter at least one grade.", submit: "Submit grades", save: "Save changes",
+  posted: "Grades posted. Students can now see them.", clsLbl: c => "Class " + c, noGrades: "No grades yet. They will appear here when a teacher posts one.",
+  postedOn: d => "Posted " + d, saveFail: "Could not save: "
+},
+ar: {
+  school: "مدارس جناكليس الوطنية", sub: "درجات الامتحانات الشهرية", lang: "English", loading: "جاري التحميل…",
+  signIn: "تسجيل الدخول", signInHint: "اكتب الإيميل والباسورد اللي المدرسة إدّتهولك.", email: "الإيميل", password: "الباسورد", signOut: "تسجيل الخروج",
+  signInFail: "فشل تسجيل الدخول. اتأكد من الإيميل والباسورد.", noProfile: "مش قادرين نفتح حسابك. كلّم إدارة المدرسة.",
+  noSubject: "حسابك لسه مفيهوش مادة. كلّم إدارة المدرسة.", admin: "حسابات الإدارة بتتدار من لوحة Supabase.",
+  exams: s => "امتحانات " + s, newExam: "إنشاء امتحان جديد", examName: "اسم الامتحان", examPh: "مثلاً: امتحان أكتوبر", max: "الدرجة النهائية",
+  create: "إنشاء الامتحان", yours: "امتحاناتك", none: "لسه مفيش امتحانات. اعمل أول امتحان من فوق.", draft: "مسودة", done: "تم الإرسال",
+  outOf: m => "من " + m, gradedOf: (g, n) => "تم تصحيح " + g + " من " + n + " طالب", view: "عرض أو تعديل", cont: "كمّل التصحيح",
+  needName: "اكتب اسم الامتحان الأول.", needMax: "الدرجة النهائية لازم تكون أكبر من صفر.", back: "رجوع لكل الامتحانات",
+  auto: "التغييرات بتتحفظ لوحدها", saving: "جاري الحفظ…", saved: "اتحفظ كل حاجة", addStu: "إضافة طلاب",
+  addAll: n => "إضافة كل الطلاب (" + n + ")", addCls: (c, n) => "إضافة فصل " + c + " (" + n + ")", addOne: "إضافة طالب", pick: "اختار طالب",
+  stuIn: n => "الطلاب في الامتحان (" + n + ")", student: "الطالب", cls: "الفصل", grade: m => "الدرجة (من " + m + ")", note: "ملاحظة للطالب",
+  opt: "اختياري", remove: "حذف", noStu: "لسه مفيش طلاب. استخدم الأزرار اللي فوق عشان تضيف الفصل.",
+  sum: (g, b) => g + " اتحط لهم درجة، " + b + " فاضي", inv: i => i + " غلط", fix: m => "صحّح الدرجات اللي لونها أحمر. لازم تكون من 0 لـ " + m + ".",
+  needOne: "ضيف طالب واحد على الأقل الأول.", needGrade: "اكتب درجة واحدة على الأقل.", submit: "إرسال الدرجات", save: "حفظ التعديلات",
+  posted: "الدرجات اتنشرت. الطلاب يقدروا يشوفوها دلوقتي.", clsLbl: c => "الفصل " + c, noGrades: "لسه مفيش درجات. هتظهر هنا لما المدرس ينشرها.",
+  postedOn: d => "اتنشرت " + d, saveFail: "مقدرناش نحفظ: "
+}};
+let L = "en"; try { L = localStorage.getItem("lang") || "en"; } catch (e) {}
+const t = (k, ...a) => { const v = T[L][k]; return typeof v === "function" ? v(...a) : v; };
+function applyLang() {
+  document.documentElement.lang = L; document.documentElement.dir = L === "ar" ? "rtl" : "ltr";
+  $("sn").textContent = t("school"); $("ss").textContent = t("sub"); $("lb").textContent = t("lang");
+  document.title = t("school");
+}
+function setLang() {
+  L = L === "en" ? "ar" : "en"; try { localStorage.setItem("lang", L); } catch (e) {}
+  applyLang(); E ? examView() : boot();
+}
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+function $(id) { return document.getElementById(id); }
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = d => new Date(d).toLocaleDateString(L === "ar" ? "ar-EG" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
+let ME = null, E = null, dirty = new Set(), timer;
+function toast(m) { const x = $("toast"); x.textContent = m; x.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => x.style.display = "none", 4500); }
+
+async function boot() {
+  E = null; $("app").textContent = t("loading");
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { ME = null; $("who").innerHTML = ""; return loginView(); }
+  const { data, error } = await sb.from("profiles").select("*").eq("id", session.user.id).single();
+  if (error || !data) { toast(t("noProfile")); return signOut(); }
+  ME = data;
+  $("who").innerHTML = `${esc(ME.full_name)} <button onclick="signOut()">${t("signOut")}</button>`;
+  if (ME.role === "teacher") return ME.subject ? teacherHome() : msg(t("noSubject"));
+  if (ME.role === "student") return studentView();
+  msg(t("admin"));
+}
+const msg = m => $("app").innerHTML = `<div class="card">${esc(m)}</div>`;
+async function signOut() { await sb.auth.signOut(); boot(); }
+
+function loginView() {
+  $("app").innerHTML = `<div class="card" style="max-width:380px;margin:30px auto"><h2>${t("signIn")}</h2><p class="mute">${t("signInHint")}</p>
+  <p><label for="em">${t("email")}</label><br><input id="em" type="email" autocomplete="username" style="width:100%" dir="ltr"></p>
+  <p><label for="pw">${t("password")}</label><br><input id="pw" type="password" autocomplete="current-password" style="width:100%" dir="ltr" onkeydown="if(event.key==='Enter')login()"></p>
+  <button class="p" onclick="login()">${t("signIn")}</button></div>`;
+}
+async function login() {
+  const { error } = await sb.auth.signInWithPassword({ email: $("em").value.trim(), password: $("pw").value });
+  if (error) return toast(t("signInFail")); boot();
+}
+
+/* ---------- Teacher: exam list ---------- */
+async function teacherHome() {
+  E = null;
+  const { data, error } = await sb.from("exams").select("*, grades(grade)").order("created_at", { ascending: false });
+  if (error) return toast(error.message);
+  $("app").innerHTML = `<h2>${esc(t("exams", ME.subject))}</h2>
+  <div class="card"><h3>${t("newExam")}</h3><div class="row">
+    <div><label for="en">${t("examName")}</label><br><input id="en" placeholder="${t("examPh")}"></div>
+    <div><label for="ex">${t("max")}</label><br><input id="ex" type="number" min="1" value="50" style="width:100px"></div>
+    <button class="p" onclick="createExam()">${t("create")}</button></div></div>
+  <div class="card"><h3>${t("yours")}</h3>${data.length ? data.map(e => {
+    const g = e.grades.filter(x => x.grade !== null).length;
+    return `<div class="exam"><div><strong>${esc(e.name)}</strong> <span class="tag ${e.status === "submitted" ? "ok" : ""}">${t(e.status === "submitted" ? "done" : "draft")}</span>
+    <div class="mute">${t("outOf", e.max_score)} · ${t("gradedOf", g, e.grades.length)}</div></div>
+    <button onclick="openExam('${e.id}')">${t(e.status === "submitted" ? "view" : "cont")}</button></div>`}).join("") : `<p class="mute">${t("none")}</p>`}</div>`;
+}
+async function createExam() {
+  const name = $("en").value.trim(), max = parseFloat($("ex").value);
+  if (!name) return toast(t("needName"));
+  if (!(max > 0)) return toast(t("needMax"));
+  const { data, error } = await sb.from("exams").insert({ name, max_score: max, subject: ME.subject, teacher_id: ME.id }).select().single();
+  if (error) return toast(error.message); openExam(data.id);
+}
+
+/* ---------- Teacher: one exam ---------- */
+async function openExam(id) {
+  const [a, b, c] = await Promise.all([
+    sb.from("exams").select("*").eq("id", id).single(),
+    sb.from("grades").select("student_id, grade, note").eq("exam_id", id),
+    sb.from("profiles").select("id, full_name, cls").eq("role", "student")]);
+  if (a.error || b.error || c.error) return toast((a.error || b.error || c.error).message);
+  E = { exam: a.data, students: c.data.sort(byClass), entries: {} }; dirty.clear();
+  b.data.forEach(r => E.entries[r.student_id] = { grade: r.grade === null ? "" : String(r.grade), note: r.note || "" });
+  examView(); window.scrollTo(0, 0);
+}
+const byClass = (a, b) => (a.cls || "").localeCompare(b.cls || "") || a.full_name.localeCompare(b.full_name);
+const bad = v => v !== "" && (isNaN(+v) || +v < 0 || +v > E.exam.max_score);
+
+function examView() {
+  const e = E.exam, added = E.students.filter(s => E.entries[s.id]), rest = E.students.filter(s => !E.entries[s.id]);
+  const classes = ["A", "B", "C"].filter(c => rest.some(s => s.cls === c)), sub = e.status === "submitted";
+  $("app").innerHTML = `<button class="link" onclick="leave()">${t("back")}</button>
+  <h2>${esc(e.name)} <span class="tag ${sub ? "ok" : ""}">${t(sub ? "done" : "draft")}</span></h2>
+  <div class="mute">${esc(e.subject)} · ${t("outOf", e.max_score)} · <span id="saved">${t("auto")}</span></div>
+  ${rest.length ? `<div class="card"><h3>${t("addStu")}</h3><div class="row">
+    <button class="p" onclick="addMany('all')">${t("addAll", rest.length)}</button>
+    ${classes.map(c => `<button onclick="addMany('${c}')">${t("addCls", c, rest.filter(s => s.cls === c).length)}</button>`).join("")}
+    <select id="one" aria-label="${t("pick")}">${rest.map(s => `<option value="${s.id}">${esc(s.full_name)} (${esc(s.cls || "?")})</option>`).join("")}</select>
+    <button onclick="addMany($('one').value)">${t("addOne")}</button></div></div>` : ""}
+  <div class="card"><h3>${t("stuIn", added.length)}</h3>${added.length ? `<div class="tw"><table><thead><tr><th>${t("student")}</th><th>${t("cls")}</th><th>${t("grade", e.max_score)}</th><th>${t("note")}</th><th></th></tr></thead><tbody>
+  ${added.map(s => `<tr><td>${esc(s.full_name)}</td><td>${esc(s.cls || "")}</td>
+   <td><input class="g ${bad(E.entries[s.id].grade) ? "bad" : ""}" type="number" min="0" max="${e.max_score}" step="0.5" value="${esc(E.entries[s.id].grade)}" aria-label="${esc(s.full_name)}" oninput="setF('${s.id}','grade',this)"></td>
+   <td><input class="n" value="${esc(E.entries[s.id].note)}" placeholder="${t("opt")}" aria-label="${t("note")}: ${esc(s.full_name)}" oninput="setF('${s.id}','note',this)"></td>
+   <td><button class="link" tabindex="-1" onclick="removeS('${s.id}')">${t("remove")}</button></td></tr>`).join("")}</tbody></table></div>` : `<p class="mute">${t("noStu")}</p>`}</div>
+  <div class="sticky"><div id="sum"></div><button class="p" id="sub" onclick="submitExam()">${t(sub ? "save" : "submit")}</button></div>`;
+  sum();
+}
+async function leave() { await flush(); teacherHome(); }
+async function addMany(w) {
+  const rows = E.students.filter(s => !E.entries[s.id] && (w === "all" || w === s.id || w === s.cls)).map(s => ({ exam_id: E.exam.id, student_id: s.id }));
+  if (!rows.length) return;
+  const { error } = await sb.from("grades").upsert(rows);
+  if (error) return toast(error.message);
+  rows.forEach(r => E.entries[r.student_id] = { grade: "", note: "" }); examView();
+}
+async function removeS(id) {
+  await flush(); const { error } = await sb.from("grades").delete().eq("exam_id", E.exam.id).eq("student_id", id);
+  if (error) return toast(error.message); delete E.entries[id]; examView();
+}
+function setF(id, f, el) {
+  E.entries[id][f] = el.value; if (f === "grade") el.classList.toggle("bad", bad(el.value));
+  dirty.add(id); $("saved").textContent = t("saving"); clearTimeout(timer); timer = setTimeout(flush, 800); sum();
+}
+async function flush() {
+  clearTimeout(timer); const ids = [...dirty].filter(id => E && E.entries[id] && !bad(E.entries[id].grade));
+  if (!ids.length) return true; ids.forEach(id => dirty.delete(id));
+  const { error } = await sb.from("grades").upsert(ids.map(id => ({ exam_id: E.exam.id, student_id: id,
+    grade: E.entries[id].grade === "" ? null : +E.entries[id].grade, note: E.entries[id].note || null })));
+  if (error) { ids.forEach(id => dirty.add(id)); toast(t("saveFail") + error.message); return false; }
+  if ($("saved")) $("saved").textContent = t("saved"); return true;
+}
+function sum() {
+  const v = Object.values(E.entries), g = v.filter(x => x.grade !== "").length, i = v.filter(x => bad(x.grade)).length;
+  $("sum").innerHTML = `<strong>${t("sum", g, v.length - g)}</strong>` + (i ? ` · <span style="color:#c00">${t("inv", i)}</span>` : "");
+}
+async function submitExam() {
+  const v = Object.values(E.entries);
+  if (!v.length) return toast(t("needOne"));
+  if (v.some(x => bad(x.grade))) return toast(t("fix", E.exam.max_score));
+  if (!v.some(x => x.grade !== "")) return toast(t("needGrade"));
+  $("sub").disabled = true;
+  if (!await flush()) return $("sub").disabled = false;
+  const { error } = await sb.from("exams").update({ status: "submitted", posted_at: E.exam.posted_at || new Date().toISOString() }).eq("id", E.exam.id);
+  if (error) { $("sub").disabled = false; return toast(error.message); }
+  toast(t("posted")); teacherHome();
+}
+
+/* ---------- Student ---------- */
+async function studentView() {
+  const { data, error } = await sb.from("grades").select("grade, note, exams(name, max_score, subject, posted_at)").not("grade", "is", null);
+  if (error) return toast(error.message);
+  const rows = data.filter(r => r.exams).sort((a, b) => new Date(b.exams.posted_at) - new Date(a.exams.posted_at));
+  const subs = [...new Set(rows.map(r => r.exams.subject))];
+  $("app").innerHTML = `<h2>${esc(ME.full_name)}</h2><div class="mute">${t("clsLbl", esc(ME.cls || ""))}</div>` + (subs.length ? subs.map(s => `<div class="card"><h3>${esc(s)}</h3>${
+    rows.filter(r => r.exams.subject === s).map(r => { const p = Math.round(r.grade / r.exams.max_score * 100);
+      return `<div class="exam" style="display:block"><div class="grade"><div><strong>${esc(r.exams.name)}</strong><div class="mute">${t("postedOn", fmt(r.exams.posted_at))}</div></div>
+      <div class="score">${r.grade} <span class="mute" style="font-size:1rem">/ ${r.exams.max_score}</span></div></div>
+      <div class="bar" role="img" aria-label="${p}%"><i style="width:${Math.min(p, 100)}%"></i></div>${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}</div>`}).join("")}</div>`).join("")
+    : `<div class="card"><p class="mute">${t("noGrades")}</p></div>`);
+}
+applyLang(); boot();
+</script>
+</body>
+</html>
